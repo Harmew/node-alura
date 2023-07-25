@@ -1,67 +1,66 @@
-import autores from "../models/Autor.js";
+import NaoEncontrado from "../error/NaoEncontrado.js";
+import { autores } from "../models/index.js";
 
 class AutorController {
-  static listarAutores = (req, res) => {
-    autores.find().then((autores) => res.status(200).json(autores));
+  static listarAutores = async (req, res, next) => {
+    try {
+      const response = autores.find();
+      req.resultado = response;
+      next();
+    } catch (err) {
+      next(err);
+    }
   };
 
-  static listarAutorPorId = (req, res) => {
-    const { id } = req.params;
-    autores
-      .findById(id)
-      .then((autor) => res.status(200).json(autor))
-      .catch((err) =>
-        res.status(400).json({
-          message: {
-            error: "Não foi possível encontrar o autor! Erro: " + err,
-          },
-        })
-      );
+  static listarAutorPorId = async (req, res, next) => {
+    try {
+      const { id } = req.params;
+      const response = await autores.findById(id);
+
+      if (!response) res.status(404).json({ message: "Autor não encontrado." });
+      else res.status(200).json(response);
+    } catch (err) {
+      next(new NaoEncontrado("Autor não encontrado."));
+    }
   };
 
-  static cadastrarAutor = (req, res) => {
-    let autor = new autores(req.body);
-    autor
-      .save()
-      .then((autor) => res.status(201).json(autor))
-      .catch((err) =>
-        res.status(500).json({
-          message: {
-            error: "Não foi possível cadastrar o autor! Erro: " + err,
-          },
-        })
-      );
+  static cadastrarAutor = async (req, res, next) => {
+    try {
+      let autor = new autores(req.body);
+      const response = await autor.save();
+
+      res.status(201).json(response);
+    } catch (err) {
+      next(err);
+    }
   };
 
-  static atualizarAutor = (req, res) => {
-    const { id } = req.params;
-    autores
-      .findByIdAndUpdate(id, { $set: req.body })
-      .then(() => res.status(200).json({ message: "Autor atualizado!" }))
-      .catch((err) =>
-        res.status(500).json({
-          message: {
-            error: "Não foi possível atualizar o autor! Erro: " + err,
-          },
-        })
-      );
+  static atualizarAutor = async (req, res, next) => {
+    try {
+      const { id } = req.params;
+      const response = await autores.findByIdAndUpdate(id, { $set: req.body });
+
+      if (response !== null)
+        res.status(200).json({ message: "Autor atualizado com sucesso" });
+      else next(new NaoEncontrado("Autor não encontrado."));
+    } catch (err) {
+      next(err);
+    }
   };
 
-  static excluirAutor = (req, res) => {
-    const { id } = req.params;
+  static excluirAutor = async (req, res, next) => {
+    try {
+      const { id } = req.params;
+      const response = await autores.findByIdAndDelete(id);
 
-    autores
-      .findByIdAndDelete(id)
-      .then(() =>
-        res.status(200).json({
-          message: { success: "Autor excluído com sucesso!" },
-        })
-      )
-      .catch((err) =>
-        res.status(500).json({
-          message: { error: "Não foi possível excluir o autor! Erro: " + err },
-        })
-      );
+      if (response !== null)
+        res.status(200).json({ message: "Autor removido com sucesso" });
+      else next(new NaoEncontrado("Autor não encontrado."));
+
+      res.status(200).json(response);
+    } catch (err) {
+      next(err);
+    }
   };
 }
 
